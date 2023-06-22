@@ -67,7 +67,7 @@ app.get('/profile/:id', (req, res) => { // we want to get the id from the reques
     }
 });
 
-app.put('/image', (req, res) => { // we want to update the user's entries
+app.post('/image', (req, res) => { // we want to update the user's entries
     const { id } = req.body; // we want to destructure the id from the request body
     let found = false; // we want to create a variable called found and set it equal to false
     database.users.forEach(user => { // we want to loop through the users array
