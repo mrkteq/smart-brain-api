@@ -1,5 +1,6 @@
 const bodyParser = require('body-parser');
 const express = require('express');
+const bcrypt = require('bcrypt-nodejs');
 
 const app = express(); 
 
@@ -23,6 +24,13 @@ const database = {
             entries: 0,
             joined: new Date()
         }
+    ],
+    login: [
+        {
+            id: '987',
+            hash: '',
+            email: 'john@john.com'
+        }
     ]
 }
 
@@ -31,7 +39,13 @@ app.get('/', (req, res) => {
     res.send(database.users); // this will send the users array to the browser
 });
 
-app.post('/signin', (req, res) => { // whatever the user enters on the frontend is going to come back here in the request and we want to check it with our list of users to make sure they match    
+app.post('/signin', (req, res) => { // whatever the user enters on the frontend is going to come back here in the request and we want to check it with our list of users to make sure they match
+    bcrypt.compare("apples", '$2a$10$zg4kPB5e5l4XYCbv/V7c6OSwMIBFbpXsGW3v68GlV7Bdd.dKUoIg2', function(err, res) {
+        console.log('first guess', res);
+    });
+    bcrypt.compare("veggies", '$2a$10$zg4kPB5e5l4XYCbv/V7c6OSwMIBFbpXsGW3v68GlV7Bdd.dKUoIg2', function(err, res) {
+        console.log('second guess', res);
+    });
     if (req.body.email === database.users[0].email && 
         req.body.password === database.users[0].password) {
         res.json('success'); // if the email and password match, we want to send back a success message
@@ -42,6 +56,9 @@ app.post('/signin', (req, res) => { // whatever the user enters on the frontend 
 
 app.post('/register', (req, res) => {
     const { email, name, password } = req.body; // we want to destructure the data that the user sends to us
+    bcrypt.hash(password, null, null, function(err, hash) {
+        console.log(hash);
+    });
     database.users.push({
         id: '125',
         name: req.body.name,
