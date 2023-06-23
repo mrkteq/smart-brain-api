@@ -1,10 +1,12 @@
 const bodyParser = require('body-parser');
 const express = require('express');
 const bcrypt = require('bcrypt-nodejs');
+const cors = require('cors');
 
 const app = express(); 
 
 app.use(bodyParser.json()); // this is middleware that will parse the body of the request and convert it to JSON
+app.use(cors()); // this is middleware that will allow us to make requests from the frontend to the backend 
 
 const database = {
     users: [
