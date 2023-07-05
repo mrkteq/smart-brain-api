@@ -2,6 +2,18 @@ const bodyParser = require('body-parser');
 const express = require('express');
 const bcrypt = require('bcrypt-nodejs');
 const cors = require('cors');
+const knex = require('knex');
+
+const db = knex({
+    client: 'pg',
+    connection: {
+      host : '127.0.0.1',
+      port : 5432,
+      user : 'marktucker',
+      password : '',
+      database : 'smart-brain'
+    }
+  });
 
 const app = express(); 
 
@@ -19,19 +31,19 @@ const database = {
             joined: new Date()
         },
         {
-            id: '124',
-            name: 'Sally',
-            email: 'sally@sally.com',
-            password: 'bananas',
+            id: '122',
+            name: 'Ann',
+            email: 'ann@ann.com',
+            password: 'apples',
             entries: 0,
             joined: new Date()
         }
     ],
     login: [
         {
-            id: '987',
+            id: '',
             hash: '',
-            email: 'john@john.com'
+            email: ''
         }
     ]
 }
@@ -50,7 +62,8 @@ app.post('/signin', (req, res) => { // whatever the user enters on the frontend 
     });
     if (req.body.email === database.users[0].email && 
         req.body.password === database.users[0].password) {
-        res.json('success'); // if the email and password match, we want to send back a success message
+        // res.json('success'); // if the email and password match, we want to send back a success message
+        res.json(database.users[0]); // we want to return the first user in the database
     } else {
         res.status(400).json('error logging in'); // if the email and password don't match, we want to send back an error message
     }
@@ -61,14 +74,11 @@ app.post('/register', (req, res) => {
     bcrypt.hash(password, null, null, function(err, hash) {
         console.log(hash);
     });
-    database.users.push({
-        id: '125',
-        name: req.body.name,
-        email: req.body.email,
-        password: req.body.password,
-        entries: 0,
+    db('users').insert({
+        name: name,
+        email: email,
         joined: new Date()
-    }) // we want to push this new user object into our database
+    }).then(console.log)
     res.json(database.users[database.users.length-1]); // we want to return the last user in the database
 });
 
@@ -86,7 +96,7 @@ app.get('/profile/:id', (req, res) => { // we want to get the id from the reques
     }
 });
 
-app.post('/image', (req, res) => { // we want to update the user's entries
+app.put('/image', (req, res) => { // we want to update the user's entries
     const { id } = req.body; // we want to destructure the id from the request body
     let found = false; // we want to create a variable called found and set it equal to false
     database.users.forEach(user => { // we want to loop through the users array
