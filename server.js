@@ -74,41 +74,41 @@ app.post('/register', (req, res) => {
     bcrypt.hash(password, null, null, function(err, hash) {
         console.log(hash);
     });
-    db('users').insert({
+    db('users')
+    .returning('*')
+    .insert({
         name: name,
         email: email,
         joined: new Date()
-    }).then(console.log)
-    res.json(database.users[database.users.length-1]); // we want to return the last user in the database
+    })
+    .then(user => {
+        res.json(user[0]);
+    })
+    .catch(err => res.status(400).json('unable to register'));
 });
 
 app.get('/profile/:id', (req, res) => { // we want to get the id from the request parameters
     const { id } = req.params; // we want to destructure the id from the request parameters
-    let found = false; // we want to create a variable called found and set it equal to false
-    database.users.forEach(user => { // we want to loop through the users array
-        if (user.id === id) { // if the user id matches the id from the request parameters
-            found = true; // we want to set found equal to true
-            return res.json(user); // we want to return the user object
+    db.select('*').from('users').where({id}).then(user => {
+        if (user.length) { // if the user length is greater than 0
+            res.json(user[0]); // we want to return the user
+        } else {
+            res.status(400).json('Not found'); // if the user length is 0, we want to return a not found message
         }
     })
-    if (!found) { // if found is still false
-        res.status(400).json('not found'); // we want to send back a not found message
-    }
+    .catch(err => res.status(400).json('error getting user'));
 });
 
 app.put('/image', (req, res) => { // we want to update the user's entries
     const { id } = req.body; // we want to destructure the id from the request body
-    let found = false; // we want to create a variable called found and set it equal to false
-    database.users.forEach(user => { // we want to loop through the users array
-        if (user.id === id) { // if the user id matches the id from the request body
-            found = true; // we want to set found equal to true
-            user.entries++; // we want to increment the user's entries
-            return res.json(user.entries); // we want to return the user's entries
-        }
-    })
-    if (!found) { // if found is still false
-        res.status(400).json('not found'); // we want to send back a not found message
-    }
+    db('users').where('id', '=', id) // we want to update the users table where the id equals the id from the request body
+        .increment('entries', 1) // we want to increment the entries by 1
+        .returning('entries') // we want to return the entries
+        .then(entries => {
+            res.json(entries[0].entries); // we want to return the first entry
+        })
+        .catch(err => res.status(400).json('unable to get entries')
+    )
 });
 
 app.listen(3000, () => {
