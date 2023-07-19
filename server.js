@@ -17,95 +17,79 @@ const db = knex({
 
 const app = express(); 
 
-app.use(bodyParser.json()); // this is middleware that will parse the body of the request and convert it to JSON
-app.use(cors()); // this is middleware that will allow us to make requests from the frontend to the backend 
+app.use(bodyParser.json());
+app.use(cors());
 
-const database = {
-    users: [
-        {
-            id: '123',
-            name: 'John',
-            email: 'john@john.com',
-            password: 'cookies',
-            entries: 0,
-            joined: new Date()
-        },
-        {
-            id: '122',
-            name: 'Ann',
-            email: 'ann@ann.com',
-            password: 'apples',
-            entries: 0,
-            joined: new Date()
-        }
-    ],
-    login: [
-        {
-            id: '',
-            hash: '',
-            email: ''
-        }
-    ]
-}
-
-// this is a route handler
 app.get('/', (req, res) => { 
-    res.send(database.users); // this will send the users array to the browser
+    res.send(database.users);
 });
 
-app.post('/signin', (req, res) => { // whatever the user enters on the frontend is going to come back here in the request and we want to check it with our list of users to make sure they match
-    bcrypt.compare("apples", '$2a$10$zg4kPB5e5l4XYCbv/V7c6OSwMIBFbpXsGW3v68GlV7Bdd.dKUoIg2', function(err, res) {
-        console.log('first guess', res);
-    });
-    bcrypt.compare("veggies", '$2a$10$zg4kPB5e5l4XYCbv/V7c6OSwMIBFbpXsGW3v68GlV7Bdd.dKUoIg2', function(err, res) {
-        console.log('second guess', res);
-    });
-    if (req.body.email === database.users[0].email && 
-        req.body.password === database.users[0].password) {
-        // res.json('success'); // if the email and password match, we want to send back a success message
-        res.json(database.users[0]); // we want to return the first user in the database
-    } else {
-        res.status(400).json('error logging in'); // if the email and password don't match, we want to send back an error message
-    }
+app.post('/signin', (req, res) => {
+    db.select('email', 'hash').from('login')
+    .where('email', '=', req.body.email)
+    .then(data => {
+        const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+        if (isValid) {
+            return db.select('*').from('users')
+            .where('email', '=', req.body.email)
+            .then(user => {
+                res.json(user[0]);
+            })
+            .catch(err => res.status(400).json('unable to get user'))
+        } else {
+            res.status(400).json('wrong credentials')
+        }
+    })
+    .catch(err => res.status(400).json('wrong credentials'))
 });
 
 app.post('/register', (req, res) => {
-    const { email, name, password } = req.body; // we want to destructure the data that the user sends to us
-    bcrypt.hash(password, null, null, function(err, hash) {
-        console.log(hash);
-    });
-    db('users')
-    .returning('*')
-    .insert({
-        name: name,
-        email: email,
-        joined: new Date()
-    })
-    .then(user => {
-        res.json(user[0]);
-    })
-    .catch(err => res.status(400).json('unable to register'));
+    const { email, name, password } = req.body;
+    const hash = bcrypt.hashSync(password);
+        db.transaction(trx => {
+            trx.insert({
+                hash: hash,
+                email: email
+            })
+            .into('login')
+            .returning('email')
+            .then(loginEmail => {
+                return trx('users')
+                    .returning('*')
+                    .insert({
+                        email: loginEmail[0].email,
+                        name: name,
+                        joined: new Date()
+                    })
+                    .then(user => {
+                        res.json(user[0]);
+                    })
+            })
+            .then(trx.commit)
+            .catch(trx.rollback)
+        })
+        .catch(err => res.status(400).json('unable to register'));
 });
 
-app.get('/profile/:id', (req, res) => { // we want to get the id from the request parameters
-    const { id } = req.params; // we want to destructure the id from the request parameters
+app.get('/profile/:id', (req, res) => {
+    const { id } = req.params;
     db.select('*').from('users').where({id}).then(user => {
-        if (user.length) { // if the user length is greater than 0
-            res.json(user[0]); // we want to return the user
+        if (user.length) {
+            res.json(user[0]);
         } else {
-            res.status(400).json('Not found'); // if the user length is 0, we want to return a not found message
+            res.status(400).json('Not found');
         }
     })
     .catch(err => res.status(400).json('error getting user'));
 });
 
-app.put('/image', (req, res) => { // we want to update the user's entries
-    const { id } = req.body; // we want to destructure the id from the request body
-    db('users').where('id', '=', id) // we want to update the users table where the id equals the id from the request body
-        .increment('entries', 1) // we want to increment the entries by 1
-        .returning('entries') // we want to return the entries
+app.put('/image', (req, res) => {
+    const { id } = req.body;
+    db('users').where('id', '=', id)
+        .increment('entries', 1)
+        .returning('entries')
         .then(entries => {
-            res.json(entries[0].entries); // we want to return the first entry
+            res.json(entries[0].entries);
         })
         .catch(err => res.status(400).json('unable to get entries')
     )
