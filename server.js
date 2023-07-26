@@ -14,9 +14,9 @@ const db = knex({
     connection: {
       host : 'dpg-cj0g8gs07spl5op4us50-a',
       port : 5432,
-      user : 'marktucker',
-      password : '',
-      database : 'smart-brain'
+      user : 'smart_brain_xy64_user',
+      password : 'quC1BbE7iNfwpEVKEuZsbWBr7VOfuEOE',
+      database : 'smart_brain_xy64'
     }
   });
 
