@@ -12,7 +12,7 @@ const image  = require('./controllers/image');
 const db = knex({
     client: 'pg',
     connection: {
-      host : '127.0.0.1',
+      host : 'postgres://smart_brain_xy64_user:quC1BbE7iNfwpEVKEuZsbWBr7VOfuEOE@dpg-cj0g8gs07spl5op4us50-a/smart_brain_xy64',
       port : 5432,
       user : 'marktucker',
       password : '',
@@ -26,7 +26,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 app.get('/', (req, res) => { 
-    res.send("it is working!");
+    res.send(db.users);
 });
 
 app.post('/signin', (req, res) => {signin.handleSignin(req, res, db, bcrypt) });
